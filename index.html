@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Конструктор графиков движения</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E7ECE8; --paper:#FAFBF9; --ink:#1B2A26; --ink2:#57655F; --rule:#C7D2CC;
+  --s:#D2542A; --v:#1F6E8C; --x:#7A4FA3; --a:#4B7F52;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Golos Text","Segoe UI",Arial,sans-serif; font-size:16px; line-height:1.5;
+  background-image:linear-gradient(rgba(120,150,140,.13) 1px,transparent 1px),linear-gradient(90deg,rgba(120,150,140,.13) 1px,transparent 1px);
+  background-size:24px 24px;
+  -webkit-font-smoothing:antialiased;
+}
+.app{max-width:1180px;margin:0 auto;padding:22px 18px 48px}
+h1{font-size:20px;font-weight:600;margin:0 0 2px}
+.hint{font-size:14.5px;color:var(--ink2);margin:0 0 18px}
+
+.card{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:18px}
+
+/* controls */
+.sliders{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 26px}
+@media(max-width:900px){.sliders{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.sliders{grid-template-columns:1fr}}
+.sl label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14.5px;color:var(--ink2);margin-bottom:2px}
+.sl label b{font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.sl input[type=range]{width:100%;margin:0;height:26px;accent-color:var(--a)}
+.sl.vv input{accent-color:var(--v)}
+.sl.xx input{accent-color:var(--x)}
+.sl.tt input{accent-color:var(--ink2)}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--rule)}
+button{font-family:inherit;font-size:14.5px;color:var(--ink);background:#fff;border:1px solid var(--rule);border-radius:999px;padding:7px 14px;cursor:pointer}
+button:hover{border-color:var(--ink2)}
+button.primary{background:var(--s);color:#fff;border-color:var(--s);font-weight:600;padding:8px 20px}
+button.primary:hover{filter:brightness(1.07)}
+.spacer{flex:1}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+
+/* equations + readout */
+.eq{font-variant-numeric:tabular-nums;font-weight:600}
+.eqs{display:flex;flex-wrap:wrap;gap:6px 28px;margin-top:16px;font-size:18px}
+.eqs span{white-space:nowrap}
+.note{font-size:14.5px;color:var(--s);margin-top:8px;min-height:1px}
+
+.time{display:flex;align-items:center;gap:12px;margin-top:16px}
+.time input{flex:1;accent-color:var(--s)}
+.time .tv{font-variant-numeric:tabular-nums;font-size:15px;color:var(--ink2);min-width:76px;text-align:right}
+
+.readout{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+@media(max-width:640px){.readout{grid-template-columns:1fr 1fr}}
+.readout div{border-left:3px solid var(--rule);padding-left:10px}
+.readout .lbl{font-size:13.5px;color:var(--ink2)}
+.readout .val{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.r-s{border-left-color:var(--s)!important}
+.r-v{border-left-color:var(--v)!important}
+.r-x{border-left-color:var(--x)!important}
+.r-d{border-left-color:var(--ink2)!important}
+
+.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+@media(max-width:900px){.charts{grid-template-columns:1fr}}
+canvas{display:block;width:100%}
+.cap{font-size:13.5px;color:var(--ink2);margin-top:6px}
+.track{margin-top:14px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <h1>Конструктор графиков движения</h1>
+  <p class="hint">Двигайте ползунки — уравнения и графики пути, скорости и координаты перестраиваются сразу.</p>
+
+  <div class="card">
+    <div class="sliders">
+      <div class="sl vv">
+        <label>Начальная скорость v₀ <b id="lv0">4 м/с</b></label>
+        <input type="range" id="sv0" min="-10" max="10" step="0.5" value="4">
+      </div>
+      <div class="sl">
+        <label>Ускорение a <b id="la">0,6 м/с²</b></label>
+        <input type="range" id="sa" min="-3" max="3" step="0.1" value="0.6">
+      </div>
+      <div class="sl xx">
+        <label>Начальная координата x₀ <b id="lx0">0 м</b></label>
+        <input type="range" id="sx0" min="-20" max="20" step="1" value="0">
+      </div>
+      <div class="sl tt">
+        <label>Время наблюдения <b id="lT">10 с</b></label>
+        <input type="range" id="sT" min="4" max="20" step="1" value="10">
+      </div>
+    </div>
+
+    <div class="eqs">
+      <span class="eq" id="eqv" style="color:var(--v)"></span>
+      <span class="eq" id="eqs" style="color:var(--s)"></span>
+      <span class="eq" id="eqx" style="color:var(--x)"></span>
+    </div>
+    <div class="note" id="note"></div>
+
+    <div class="row">
+      <button class="primary" id="play">Поехали</button>
+      <button id="reset">Сбросить</button>
+      <div class="presets">
+        <button data-p="rest">Покой</button>
+        <button data-p="uni">Равномерное</button>
+        <button data-p="acc">Разгон</button>
+        <button data-p="brake">Торможение</button>
+        <button data-p="back">Назад</button>
+        <button data-p="turn">Разворот</button>
+      </div>
+    </div>
+
+    <div class="time">
+      <input type="range" id="cursor" min="0" max="1000" step="1" value="0" aria-label="Момент времени">
+      <span class="tv" id="tv">t = 0,0 с</span>
+    </div>
+
+    <div class="readout">
+      <div class="r-v"><div class="lbl">Скорость</div><div class="val" id="rv">—</div></div>
+      <div class="r-s"><div class="lbl">Путь</div><div class="val" id="rs">—</div></div>
+      <div class="r-x"><div class="lbl">Координата</div><div class="val" id="rx">—</div></div>
+      <div class="r-d"><div class="lbl">Перемещение</div><div class="val" id="rd">—</div></div>
+    </div>
+
+    <div class="track">
+      <canvas id="track" aria-label="Положение тела на прямой"></canvas>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="card"><canvas id="cv"></canvas><div class="cap">Скорость v(t). Наклон прямой — ускорение, площадь — путь.</div></div>
+    <div class="card"><canvas id="cs"></canvas><div class="cap">Путь s(t). Только растёт, при a ≠ 0 — парабола.</div></div>
+    <div class="card"><canvas id="cx"></canvas><div class="cap">Координата x(t). Разность высот — перемещение.</div></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+var C={s:"#D2542A",v:"#1F6E8C",x:"#7A4FA3",a:"#4B7F52",ink:"#1B2A26",ink2:"#57655F",rule:"#C7D2CC",grid:"#DFE7E2"};
+var reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function fmt(n,d){d=(d===undefined)?1:d;var s=(Math.abs(n)<5e-3?0:n).toFixed(d);return s.replace(".",",");}
+function num(x){var s=x.toFixed(2);if(s.indexOf(".")>-1)s=s.replace(/0+$/,"").replace(/\.$/,"");if(s==="-0")s="0";return s.replace(".",",");}
+
+/* ---------- plotter ---------- */
+function Plot(cv,cfg){this.cv=cv;this.cfg=cfg;this.draw();}
+Plot.prototype.set=function(c){for(var k in c)this.cfg[k]=c[k];this.draw();};
+Plot.prototype.draw=function(){
+  var cfg=this.cfg,cv=this.cv,w=cv.clientWidth||cv.parentNode.clientWidth||300;
+  if(w<40)return;
+  var h=Math.round(w*(cfg.aspect||0.78));
+  if(h<190)h=190; if(h>300)h=300;
+  var dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+"px";
+  var ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  var m={l:48,r:14,t:14,b:32},pw=w-m.l-m.r,ph=h-m.t-m.b;
+  var x0=0,x1=cfg.xMax,y0=cfg.yMin,y1=cfg.yMax;
+  var X=function(x){return m.l+(x-x0)/(x1-x0)*pw;},Y=function(y){return m.t+(y1-y)/(y1-y0)*ph;};
+  ctx.font='12px "Golos Text",Arial,sans-serif';ctx.textBaseline="middle";
+  var i;
+  ctx.strokeStyle=C.grid;ctx.lineWidth=1;
+  for(i=x0;i<=x1+1e-9;i+=cfg.xStep){ctx.beginPath();ctx.moveTo(Math.round(X(i))+.5,m.t);ctx.lineTo(Math.round(X(i))+.5,m.t+ph);ctx.stroke();}
+  for(i=y0;i<=y1+1e-9;i+=cfg.yStep){ctx.beginPath();ctx.moveTo(m.l,Math.round(Y(i))+.5);ctx.lineTo(m.l+pw,Math.round(Y(i))+.5);ctx.stroke();}
+  // area under curve
+  if(cfg.area&&cfg.points.length){
+    var p=cfg.points;
+    ctx.beginPath();ctx.moveTo(X(p[0][0]),Y(0));
+    for(i=0;i<p.length;i++)ctx.lineTo(X(p[i][0]),Y(p[i][1]));
+    ctx.lineTo(X(p[p.length-1][0]),Y(0));ctx.closePath();
+    ctx.fillStyle=cfg.area;ctx.fill();
+  }
+  // axes
+  ctx.strokeStyle=C.ink;ctx.lineWidth=1.4;
+  var zy=Math.round(Y(Math.max(y0,Math.min(0,y1))))+.5;
+  ctx.beginPath();ctx.moveTo(Math.round(X(0))+.5,m.t-4);ctx.lineTo(Math.round(X(0))+.5,m.t+ph);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(m.l,zy);ctx.lineTo(m.l+pw+4,zy);ctx.stroke();
+  ctx.fillStyle=C.ink2;ctx.textAlign="center";
+  for(i=x0;i<=x1+1e-9;i+=cfg.xTickStep||cfg.xStep){if(i===0)continue;ctx.fillText(String(Math.round(i)),X(i),m.t+ph+13);}
+  ctx.textAlign="right";
+  for(i=y0;i<=y1+1e-9;i+=cfg.yStep){ctx.fillText(String(Math.round(i)),m.l-7,Y(i));}
+  ctx.fillStyle=C.ink;ctx.textAlign="right";ctx.fillText("t, с",m.l+pw+4,m.t+ph+24);
+  ctx.textAlign="left";ctx.fillText(cfg.yLabel,2,m.t-1);
+  // curve
+  if(cfg.points&&cfg.points.length>1){
+    ctx.strokeStyle=cfg.color;ctx.lineWidth=2.6;ctx.lineJoin="round";ctx.lineCap="round";
+    ctx.beginPath();ctx.moveTo(X(cfg.points[0][0]),Y(cfg.points[0][1]));
+    for(i=1;i<cfg.points.length;i++)ctx.lineTo(X(cfg.points[i][0]),Y(cfg.points[i][1]));
+    ctx.stroke();
+  }
+  // cursor
+  if(cfg.cursor){
+    var cx=X(cfg.cursor[0]),cy=Y(cfg.cursor[1]);
+    ctx.save();ctx.setLineDash([3,3]);ctx.strokeStyle=C.ink2;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(cx,m.t);ctx.lineTo(cx,m.t+ph);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(m.l,cy);ctx.lineTo(cx,cy);ctx.stroke();ctx.restore();
+    ctx.fillStyle=cfg.color;ctx.beginPath();ctx.arc(cx,cy,4.6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(cx,cy,1.8,0,Math.PI*2);ctx.fill();
+  }
+};
+
+function niceRange(lo,hi){
+  if(hi-lo<1){hi=lo+1;}
+  var raw=(hi-lo)/5,p=Math.pow(10,Math.floor(Math.log(raw)/Math.LN10)),n=raw/p;
+  var m=n<=1?1:(n<=2?2:(n<=5?5:10)),st=m*p;
+  if(st<1)st=1;
+  return {min:Math.round(Math.floor(lo/st)*st),max:Math.round(Math.ceil(hi/st)*st),step:st};
+}
+
+/* ---------- state ---------- */
+var el=function(id){return document.getElementById(id);};
+var N=400,T=10,v0=4,acc=0.6,x0=0,tNow=0,data=null,playing=false,raf=null,last=0;
+var pV=new Plot(el("cv"),{xMax:10,xStep:1,yMin:0,yMax:10,yStep:2,yLabel:"v, м/с",color:C.v,points:[]});
+var pS=new Plot(el("cs"),{xMax:10,xStep:1,yMin:0,yMax:10,yStep:2,yLabel:"s, м",color:C.s,points:[]});
+var pX=new Plot(el("cx"),{xMax:10,xStep:1,yMin:0,yMax:10,yStep:2,yLabel:"x, м",color:C.x,points:[]});
+
+function compute(){
+  var dt=T/N,V=[],S=[],XX=[],s=0,x=x0,i;
+  for(i=0;i<=N;i++){
+    var t=i*dt,v=v0+acc*t;
+    if(i>0){var vp=v0+acc*(t-dt);x+=(v+vp)/2*dt;s+=Math.abs((v+vp)/2)*dt;}
+    V.push([t,v]);S.push([t,s]);XX.push([t,x]);
+  }
+  data={dt:dt,V:V,S:S,X:XX};
+}
+function at(arr){var i=Math.max(0,Math.min(N,Math.round(tNow/data.dt)));return arr[i][1];}
+function span(arr){var lo=arr[0][1],hi=arr[0][1],k;for(k=0;k<arr.length;k++){if(arr[k][1]<lo)lo=arr[k][1];if(arr[k][1]>hi)hi=arr[k][1];}return[Math.min(0,lo),Math.max(0,hi)];}
+
+function drawTrack(){
+  var cv=el("track"),w=cv.clientWidth,h=86,dpr=window.devicePixelRatio||1;
+  if(w<40)return;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+"px";
+  var ctx=cv.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+  var sp=span(data.X),lo=sp[0],hi=sp[1];
+  if(hi-lo<4){hi=lo+4;}
+  var pad=30,L=w-pad*2,base=58;
+  var P=function(mx){return pad+(mx-lo)/(hi-lo)*L;};
+  ctx.font='12px "Golos Text",Arial,sans-serif';ctx.textBaseline="middle";
+  ctx.strokeStyle=C.rule;ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(pad,base+.5);ctx.lineTo(pad+L,base+.5);ctx.stroke();
+  var r=niceRange(lo,hi),i;
+  ctx.fillStyle=C.ink2;ctx.textAlign="center";
+  for(i=r.min;i<=r.max+1e-9;i+=r.step){
+    if(i<lo-1e-9||i>hi+1e-9)continue;
+    var px=P(i);ctx.strokeStyle=C.rule;
+    ctx.beginPath();ctx.moveTo(px+.5,base);ctx.lineTo(px+.5,base+6);ctx.stroke();
+    ctx.fillText(String(Math.round(i)),px,base+18);
+  }
+  ctx.textAlign="left";ctx.fillText("x, м",pad+L-22,base+32);
+  var xn=at(data.X);
+  // trail of path
+  var idx=Math.max(0,Math.min(N,Math.round(tNow/data.dt))),a1=data.X[0][1],b1=data.X[0][1],k;
+  for(k=0;k<=idx;k++){var q=data.X[k][1];if(q<a1)a1=q;if(q>b1)b1=q;}
+  ctx.strokeStyle="rgba(210,84,42,.3)";ctx.lineWidth=5;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(P(a1),base-16);ctx.lineTo(P(b1),base-16);ctx.stroke();
+  // displacement
+  ctx.strokeStyle=C.x;ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(P(x0),base-32);ctx.lineTo(P(xn),base-32);ctx.stroke();
+  ctx.fillStyle=C.x;ctx.beginPath();ctx.arc(P(x0),base-32,3,0,Math.PI*2);ctx.fill();
+  if(Math.abs(xn-x0)>(hi-lo)*0.02){
+    var d=xn>x0?1:-1,ax=P(xn);
+    ctx.beginPath();ctx.moveTo(ax,base-32);ctx.lineTo(ax-6*d,base-36);ctx.lineTo(ax-6*d,base-28);ctx.closePath();ctx.fill();
+  }
+  // cart
+  var cx=P(xn),rw=32,rh=16,rr=3,rx=cx-rw/2,ry=base-rh-4;
+  ctx.fillStyle=C.ink;ctx.beginPath();
+  ctx.moveTo(rx+rr,ry);ctx.lineTo(rx+rw-rr,ry);ctx.quadraticCurveTo(rx+rw,ry,rx+rw,ry+rr);
+  ctx.lineTo(rx+rw,ry+rh-rr);ctx.quadraticCurveTo(rx+rw,ry+rh,rx+rw-rr,ry+rh);
+  ctx.lineTo(rx+rr,ry+rh);ctx.quadraticCurveTo(rx,ry+rh,rx,ry+rh-rr);
+  ctx.lineTo(rx,ry+rr);ctx.quadraticCurveTo(rx,ry,rx+rr,ry);ctx.fill();
+  ctx.fillStyle=C.s;
+  ctx.beginPath();ctx.arc(cx-8,base-3,3.6,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(cx+8,base-3,3.6,0,Math.PI*2);ctx.fill();
+}
+
+function render(){
+  var rv=niceRange(span(data.V)[0],span(data.V)[1]);
+  var rs=niceRange(0,span(data.S)[1]);
+  var rx=niceRange(span(data.X)[0],span(data.X)[1]);
+  var xs=T<=10?1:2,xt=T<=10?2:4;
+  pV.set({xMax:T,xStep:xs,xTickStep:xt,yMin:rv.min,yMax:rv.max,yStep:rv.step,points:data.V,area:"rgba(31,110,140,.13)",cursor:[tNow,at(data.V)]});
+  pS.set({xMax:T,xStep:xs,xTickStep:xt,yMin:rs.min,yMax:rs.max,yStep:rs.step,points:data.S,cursor:[tNow,at(data.S)]});
+  pX.set({xMax:T,xStep:xs,xTickStep:xt,yMin:rx.min,yMax:rx.max,yStep:rx.step,points:data.X,cursor:[tNow,at(data.X)]});
+  drawTrack();
+  el("rv").textContent=fmt(at(data.V))+" м/с";
+  el("rs").textContent=fmt(at(data.S))+" м";
+  el("rx").textContent=fmt(at(data.X))+" м";
+  el("rd").textContent=fmt(at(data.X)-x0)+" м";
+  el("tv").textContent="t = "+fmt(tNow)+" с";
+  el("cursor").value=String(Math.round(tNow/T*1000));
+}
+
+function joinTerms(list){
+  var out="",i;
+  for(i=0;i<list.length;i++){
+    var k=list[i][0],sym=list[i][1];
+    if(Math.abs(k)<1e-9)continue;
+    var abs=num(Math.abs(k));
+    var piece=sym?((abs==="1"?"":abs+"·")+sym):abs;
+    if(!out)out=(k<0?"−":"")+piece;
+    else out+=(k<0?" − ":" + ")+piece;
+  }
+  return out||"0";
+}
+
+function equations(){
+  el("lv0").textContent=num(v0)+" м/с";
+  el("la").textContent=num(acc)+" м/с²";
+  el("lx0").textContent=num(x0)+" м";
+  el("lT").textContent=T+" с";
+
+  var turnT=(v0*acc<0)?(-v0/acc):Infinity;
+  var turns=turnT<=T+1e-9;
+
+  el("eqv").textContent="v = "+joinTerms([[v0,""],[acc,"t"]]);
+  el("eqx").textContent="x = "+joinTerms([[x0,""],[v0,"t"],[acc/2,"t²"]]);
+  el("eqs").textContent=turns?"s = площадь под v(t)":"s = "+joinTerms([[v0,"t"],[acc/2,"t²"]]);
+
+  var note="";
+  if(Math.abs(acc)<1e-9){
+    note=Math.abs(v0)<1e-9?"Скорость и ускорение равны нулю: тело покоится, путь не растёт."
+      :"Ускорение равно нулю: движение равномерное, графики пути и координаты — прямые.";
+  }else if(turns){
+    note="Скорость обращается в ноль при t = "+num(turnT)+" с: на графике координаты это вершина, дальше тело едет обратно. Путь до разворота "+num(v0*v0/(2*Math.abs(acc)))+" м, после него формула пути перестаёт совпадать с формулой координаты.";
+  }else if(v0*acc<0){
+    note="Тело замедляется, но за выбранное время остановиться не успевает: разворот произошёл бы при t = "+num(turnT)+" с.";
+  }
+  el("note").textContent=note;
+}
+
+function refresh(){compute();if(tNow>T)tNow=T;equations();render();}
+
+/* ---------- interaction ---------- */
+function bind(id,fn){el(id).addEventListener("input",function(e){fn(Number(e.target.value));refresh();});}
+bind("sv0",function(x){v0=x;});
+bind("sa",function(x){acc=x;});
+bind("sx0",function(x){x0=x;});
+bind("sT",function(x){T=x;if(tNow>T)tNow=T;});
+el("cursor").addEventListener("input",function(e){stop();tNow=Number(e.target.value)/1000*T;render();});
+
+function frame(ts){
+  if(!playing)return;
+  if(!last)last=ts;
+  var d=Math.min(0.05,(ts-last)/1000);last=ts;
+  tNow+=d;
+  if(tNow>=T){tNow=T;stop();render();return;}
+  render();raf=requestAnimationFrame(frame);
+}
+function play(){if(tNow>=T-1e-6)tNow=0;playing=true;last=0;el("play").textContent="Пауза";raf=requestAnimationFrame(frame);}
+function stop(){playing=false;if(raf)cancelAnimationFrame(raf);el("play").textContent="Поехали";}
+el("play").addEventListener("click",function(){playing?stop():play();});
+el("reset").addEventListener("click",function(){stop();tNow=0;render();});
+
+var PRESETS={
+  rest:{v0:0,a:0,x0:6},
+  uni:{v0:4,a:0,x0:0},
+  acc:{v0:0,a:1,x0:0},
+  brake:{v0:8,a:-1,x0:0},
+  back:{v0:-3,a:0,x0:15},
+  turn:{v0:6,a:-1.5,x0:0}
+};
+Array.prototype.forEach.call(document.querySelectorAll("[data-p]"),function(b){
+  b.addEventListener("click",function(){
+    var p=PRESETS[b.getAttribute("data-p")];
+    v0=p.v0;acc=p.a;x0=p.x0;
+    el("sv0").value=v0;el("sa").value=acc;el("sx0").value=x0;
+    tNow=0;stop();refresh();if(!reduce)play();
+  });
+});
+
+window.addEventListener("resize",function(){render();});
+refresh();
+if(!reduce)setTimeout(play,400);
+})();
+</script>
+</body>
+</html>
